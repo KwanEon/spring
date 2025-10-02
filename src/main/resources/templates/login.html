@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            text-align: center;
+        }
+        .error-message {
+            color: red;
+            margin-bottom: 10px;
+        }
+        input {
+            width: 80%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>로그인</h2>
+        
+        <!-- 에러 메시지 표시 -->
+        <div th:if="${error}" class="error-message">
+            <p th:text="${error}"></p>
+        </div>
+
+        <form th:action="@{/login}" method="post" onsubmit="return validateForm()">
+            <div>
+                <input type="text" id="username" name="username" placeholder="아이디">
+                <p id="username-error" class="error-message" style="display: none; color: red;">아이디를 입력해주세요.</p>
+            </div>
+        
+            <div>
+                <input type="password" id="password" name="password" placeholder="비밀번호">
+                <p id="password-error" class="error-message" style="display: none; color: red;">비밀번호를 입력해주세요.</p>
+            </div>
+        
+            <button type="submit">로그인</button>
+        </form>
+
+        <script>
+            function validateForm() {
+                let isValid = true;
+        
+                let username = document.getElementById("username").value.trim();
+                let password = document.getElementById("password").value.trim();
+        
+                let usernameError = document.getElementById("username-error");
+                let passwordError = document.getElementById("password-error");
+        
+                if (username === "") {
+                    usernameError.style.display = "block";
+                    isValid = false;
+                } else {
+                    usernameError.style.display = "none";
+                }
+        
+                if (password === "") {
+                    passwordError.style.display = "block";
+                    isValid = false;
+                } else {
+                    passwordError.style.display = "none";
+                }
+        
+                return isValid; // 입력이 비어있으면 폼 제출 방지
+            }
+        </script>
+
+        <p>계정이 없으신가요? <a th:href="@{/register}">회원가입</a></p>
+    </div>
+</body>
+</html>

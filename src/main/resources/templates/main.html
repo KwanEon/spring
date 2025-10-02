@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Page</title>
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        header {
+            background-color: #0078d7;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+        }
+        main {
+            padding: 20px;
+        }
+        a {
+            color: #0078d7;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Main Page</h1>
+    </header>
+    <main>
+        <p>This is a simple bulletin board made with Spring Boot.</p>
+        <p sec:authorize="isAuthenticated()">
+            반갑습니다 <span sec:authentication="principal.username"></span>님!
+        </p>
+        <br>
+        <p sec:authorize="isAnonymous()">
+            <a th:href="@{/register}">Register</a>
+        </p>
+        <br>
+        <p sec:authorize="hasRole('ROLE_ADMIN')">
+            <a th:href="@{/userlist}">View Users</a>
+        </p>
+        <br>
+        <p sec:authorize ="isAnonymous()">
+            <a th:href="@{/login}">Login</a>
+        </p>
+        <p sec:authorize ="isAuthenticated()">
+            <a href="#" onclick="logout()" style="color:#0078d7; text-decoration:underline; cursor:pointer;">Logout</a>
+        </p>
+        <br>
+        <a th:href="@{/postlist}">View Posts</a>
+    </main>
+
+    <script>
+        function logout() {
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.action = '/logout';
+    
+            // CSRF 토큰 추가
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '_csrf';
+            csrfInput.value = csrfToken;
+    
+            form.appendChild(csrfInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+    <title>게시글 보기</title>
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #333;
+        }
+        .content {
+            margin-top: 20px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+        .meta {
+            margin-top: 10px;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .buttons {
+            margin-top: 30px;
+        }
+        .buttons a, .buttons button {
+            margin-right: 10px;
+        }
+        .button {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s ease;
+        }
+        .edit-btn {
+            background-color: #ffc107;
+            color: #333;
+            border: 1px solid #e0a800;
+        }
+        .edit-btn:hover {
+            background-color: #e0a800;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: 1px solid #c82333;
+        }
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+        a.back-link {
+            margin-left: 10px;
+            font-size: 14px;
+            color: #333;
+            text-decoration: none;
+        }
+        a.back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<h1 th:text="${post.title}">제목</h1>
+
+<div class="meta">
+    작성자: <span th:text="${post.author}">작성자</span> |
+    작성일: <span th:text="${#temporals.format(post.createdAt, 'yyyy-MM-dd HH:mm')}">작성일</span> |
+    조회수: <span th:text="${post.views}">조회수</span>
+</div>
+
+<div class="content" th:text="${post.content}">내용</div>
+
+<div th:if="${post.attachments != null and post.attachments.size() > 0}">
+    <h3>첨부파일</h3>
+    <ul>
+        <li th:each="attachment : ${post.attachments}">
+            <a th:href="@{'/download?no=' + ${attachment.id}}" th:text="${attachment.originalName}">첨부 파일 다운로드</a>
+        </li>
+    </ul>
+</div>
+
+<div class="buttons">
+    <th:block th:if="${#authentication?.principal != null and post.author == #authentication.principal.username or #authentication?.principal?.username == 'admin'}">
+        <a th:href="@{'/postlist/edit/' + ${post.id}}" class="button edit-btn">✏ 수정</a>
+        <form th:action="@{'/postlist/' + ${post.id}}" method="post"
+              onsubmit="return confirm('정말 삭제하시겠습니까?');" style="display:inline;">
+            <input type="hidden" name="_method" value="delete"/>
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button type="submit" class="button delete-btn">🗑 삭제</button>
+        </form>
+    </th:block>
+    <a th:href="@{/postlist}" class="back-link">← 목록으로</a>
+</div>
+
+<h3>댓글</h3>
+<ul>
+    <li th:each="comment : ${comments}" th:id="'comment-' + ${comment.id}">
+        <strong th:text="${comment.author}">작성자</strong>:
+        <span th:text="${comment.content}" th:id="'content-' + ${comment.id}">내용</span>
+        <em th:text="${#temporals.format(comment.createdAt, 'yyyy-MM-dd HH:mm')}">작성일</em>
+
+        <th:block th:if="${#authentication?.principal?.username == comment.author or #authentication?.principal?.username == 'admin'}">
+            <button type="button"
+                    class="edit-button"
+                    th:data-id="${comment.id}"
+                    th:data-content="${comment.content}">
+                ✏ 수정
+            </button>
+
+            <form th:action="@{'/postlist/' + ${post.id} + '/comment/' + ${comment.id}}" method="post"
+                  style="display:inline;"
+                  onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                <input type="hidden" name="_method" value="delete"/>
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit">🗑 삭제</button>
+            </form>
+        </th:block>
+    </li>
+</ul>
+
+<!-- 수정 폼 영역 -->
+<div id="edit-comment-form" style="display:none; margin-top: 10px;">
+    <form method="post" id="editForm">
+        <textarea name="content" id="editContent" rows="3" cols="60" required></textarea><br>
+        <button type="submit">💾 저장</button>
+        <button type="button" onclick="cancelEdit()">❌ 취소</button>
+    </form>
+</div>
+
+<!-- 댓글 작성 -->
+<form th:action="@{'/postlist/' + ${post.id} + '/comment'}" method="post" th:object="${commentDTO}">
+    <textarea th:field="*{content}" rows="3" cols="60" placeholder="댓글을 입력하세요" required></textarea>
+    <br>
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+    <button type="submit">댓글 작성</button>
+</form>
+
+<script th:inline="javascript">
+    const postId = "[[${post.id}]]";
+
+    function showEditForm(commentId, content) {
+        const formDiv = document.getElementById("edit-comment-form");
+        const form = document.getElementById("editForm");
+        const textarea = document.getElementById("editContent");
+
+        textarea.value = content;
+        form.action = `/postlist/${postId}/comment/${commentId}`;
+        form.method = "post";
+
+        // CSRF 토큰 처리
+        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute("content");
+        const csrfInput = document.createElement("input");
+        csrfInput.type = "hidden";
+        csrfInput.name = "_csrf";
+        csrfInput.value = csrfToken;
+
+        // 기존 토큰 제거 후 다시 추가
+        const oldToken = form.querySelector('input[name="_csrf"]');
+        if (oldToken) oldToken.remove();
+        form.appendChild(csrfInput);
+
+        formDiv.style.display = "block";
+
+        const commentElement = document.getElementById("comment-" + commentId);
+        commentElement.appendChild(formDiv);
+    }
+
+    function cancelEdit() {
+        document.getElementById("edit-comment-form").style.display = "none";
+    }
+
+    document.querySelectorAll('.edit-button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const commentId = btn.dataset.id;
+            const content = btn.dataset.content;
+            showEditForm(commentId, content);
+        });
+    });
+</script>
+</body>
+</html>

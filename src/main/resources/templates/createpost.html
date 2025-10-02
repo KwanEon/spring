@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>게시글 작성</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        form > div {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        textarea {
+            height: 200px;
+            resize: vertical;
+        }
+
+        .error {
+            color: red;
+            font-size: 0.9em;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .remove-btn {
+            background-color: #FF4D4D;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 15px;
+            color: #333;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>게시글 작성</h1>
+    <form id="postForm" th:action="@{/postlist/new}" th:object="${post}" method="post" enctype="multipart/form-data">
+        <div>
+            <label for="title">제목</label>
+            <input type="text" th:field="*{title}" id="title"/>
+            <div th:if="${#fields.hasErrors('title')}" th:errors="*{title}" class="error"></div>
+        </div>
+    
+        <div>
+            <label for="content">내용</label>
+            <textarea th:field="*{content}" id="content"></textarea>
+            <div th:if="${#fields.hasErrors('content')}" th:errors="*{content}" class="error"></div>
+        </div>
+
+        <div>
+            <label for="file">파일 첨부</label>
+            <input type="file" id="fileInput" multiple style="display: none;" />
+            <button type="button" id="fileButton">파일 선택</button>
+            <span id="fileInfo">선택된 파일 없음</span>
+            <ul id="fileList"></ul>
+        </div>
+
+        <button type="submit" id="submitButton">작성</button>
+    </form>
+
+    <a th:href="@{/postlist}">← 목록으로</a>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const fileButton = document.getElementById('fileButton');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileList = document.getElementById('fileList');
+        const postForm = document.getElementById('postForm');
+        const submitButton = document.getElementById('submitButton');
+
+        let selectedFiles = [];
+
+        fileButton.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', () => {
+            Array.from(fileInput.files).forEach(file => {
+                selectedFiles.push(file);
+                addFileToList(file);
+            });
+
+            updateFileInfo();
+            fileInput.value = '';
+        });
+
+        function addFileToList(file) {
+            const listItem = document.createElement('li');
+            listItem.textContent = file.name;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = 'X';
+            removeBtn.className = 'remove-btn';
+            removeBtn.addEventListener('click', () => removeFile(file, listItem));
+
+            listItem.appendChild(removeBtn);
+            fileList.appendChild(listItem);
+        }
+
+        function removeFile(file, listItem) {
+            const index = selectedFiles.indexOf(file);
+            if (index > -1) {
+                selectedFiles.splice(index, 1);
+            }
+            fileList.removeChild(listItem);
+            updateFileInfo();
+        }
+
+        function updateFileInfo() {
+            if (selectedFiles.length > 0) {
+                fileInfo.textContent = `${selectedFiles.length}개의 파일 선택됨`;
+            } else {
+                fileInfo.textContent = '선택된 파일 없음';
+            }
+        }
+
+        postForm.addEventListener('submit', event => {
+            event.preventDefault(); // 기본 폼 제출 방지
+
+            const formData = new FormData(postForm);
+
+            formData.forEach((value, key) => console.log(key, value));  // 폼 데이터 확인
+
+            // 선택된 파일 추가 (파일이 선택된 경우에만 FormData에 추가)
+            if (selectedFiles.length > 0) {
+                selectedFiles.forEach(file => formData.append('newFiles', file));
+            }
+
+            // 서버로 폼 데이터 전송
+            fetch(postForm.getAttribute('action'), {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.text(); // 성공 메시지
+                } else {
+                    throw new Error("제목과 내용을 입력하세요.");
+                }
+            })
+            .then(message => {
+                alert(message);
+                window.location.href = '/postlist'; // 작성 후 목록으로 이동
+            })
+            .catch(error => {
+                console.error('Error:', error.message);
+                alert(error.message);
+            });
+        });
+    </script>
+</body>
+</html>

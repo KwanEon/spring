@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>게시글 수정</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        form > div {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        textarea {
+            height: 200px;
+            resize: vertical;
+        }
+
+        .error {
+            color: red;
+            font-size: 0.9em;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .remove-btn {
+            background-color: #FF4D4D;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 15px;
+            color: #333;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>게시글 수정</h1>
+    <form id="editPostForm" th:action="@{'/postlist/edit/' + ${post.id}}" th:object="${post}" method="post" enctype="multipart/form-data">
+        <!-- 제목, 내용 입력 -->
+        <div>
+            <label for="title">제목</label>
+            <input type="text" th:field="*{title}" id="title"/>
+            <div th:if="${#fields.hasErrors('title')}" th:errors="*{title}" class="error"></div>
+        </div>
+
+        <div>
+            <label for="content">내용</label>
+            <textarea th:field="*{content}" id="content"></textarea>
+            <div th:if="${#fields.hasErrors('content')}" th:errors="*{content}" class="error"></div>
+        </div>
+        
+        <!-- 첨부파일 관리 -->
+        <div>
+            <label>첨부파일</label>
+            <div th:if="${post.attachments != null and post.attachments.size() > 0}">
+                <ul>
+                    <li th:each="attachment : ${post.attachments}">
+                        <span th:text="${attachment.originalName}"></span>
+                        <button type="button" class="remove-btn" th:onclick="'removeAttachment(this, ' + ${attachment.id} + ')'">X</button>
+                    </li>
+                </ul>
+            </div>
+            <label for="newFile">새 파일 추가</label>
+            <input type="file" id="newFiles" multiple style="display: none;" />
+            <button type="button" id="fileButton">파일 선택</button>
+            <span id="fileInfo">선택된 파일 없음</span>
+            <ul id="fileList"></ul>
+        </div>
+
+        <button type="submit">수정</button>
+    </form>
+    <a th:href="@{/postlist}">← 목록으로</a>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const fileInput = document.getElementById('newFiles');
+            const fileButton = document.getElementById('fileButton');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileList = document.getElementById('fileList');
+
+            let selectedFiles = []; // 선택된 파일을 추적하는 배열
+
+            // fileButton 클릭 시 fileInput 클릭 이벤트 실행
+            if (fileButton && fileInput) {
+                fileButton.addEventListener('click', () => {
+                    fileInput.click();
+                });
+            } else {
+                console.error('fileButton or fileInput is missing'); // 요소가 없으면 오류 출력
+                return;
+            }
+
+            // 파일이 선택될 때마다 실행
+            if (fileInput) {
+                fileInput.addEventListener('change', () => {
+                    Array.from(fileInput.files).forEach(file => {
+                        selectedFiles.push(file);
+                        addFileToList(file);
+                    });
+
+                    if (selectedFiles.length > 0) {
+                        fileInfo.textContent = `${selectedFiles.length}개의 파일 선택됨`;
+                    } else {
+                        fileInfo.textContent = '선택된 파일 없음';
+                    }
+
+                    fileInput.value = ''; // 파일 선택 후 input 값 초기화
+                });
+            }
+
+            // 선택된 파일 리스트에 추가
+            function addFileToList(file) {
+                const listItem = document.createElement('li');
+                listItem.textContent = file.name;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'X';
+                removeBtn.className = 'remove-btn';
+                removeBtn.addEventListener('click', () => removeFile(file, listItem));
+
+                listItem.appendChild(removeBtn);
+                fileList.appendChild(listItem);
+            }
+
+            // 파일 삭제 함수
+            function removeFile(file, listItem) {
+                const index = selectedFiles.indexOf(file);  // 선택된 파일 배열에서 인덱스 찾기
+                if (index > -1) {
+                    selectedFiles.splice(index, 1); // 선택된 파일 배열에서 삭제
+                }
+                fileList.removeChild(listItem); // 리스트에서 삭제
+
+                if (selectedFiles.length > 0) {
+                    fileInfo.textContent = `${selectedFiles.length}개의 파일 선택됨`;
+                } else {
+                    fileInfo.textContent = '선택된 파일 없음';
+                }
+            }
+
+            // 게시물의 첨부파일 삭제 함수
+            window.removeAttachment = function(button, attachmentId) {  // 버튼 클릭 시 호출되는 함수
+                const listItem = button.parentNode;
+                listItem.remove();
+
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'deleteAttachmentIds';
+                input.value = attachmentId;
+
+                document.querySelector('form').appendChild(input);  // 폼에 삭제할 첨부파일 ID 추가
+            }
+
+            // 폼 제출 이벤트
+            const form = document.getElementById('editPostForm');
+            if (form) {
+                form.addEventListener('submit', event => {
+                    event.preventDefault(); // 기본 폼 제출 방지
+
+                    const formData = new FormData(form);
+
+                    formData.forEach((value, key) => console.log(key, value));  // 폼 데이터 확인
+
+                    // 선택된 파일 추가 (파일이 선택된 경우에만 FormData에 추가)
+                    if (selectedFiles.length > 0) {
+                        selectedFiles.forEach(file => formData.append('newFiles', file));
+                    }
+
+                    // 서버로 폼 데이터 전송
+                    fetch(form.getAttribute('action'), {
+                        method: 'POST',
+                        body: formData,
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.text(); // 성공 메시지
+                        } else {
+                            throw new Error("제목과 내용을 입력하세요.");
+                        }
+                    })
+                    .then(message => {
+                        alert(message); // 수정된 메시지 표시
+                        window.location.href = '/postlist'; // 확인을 누르면 목록으로 이동
+                    })
+                    .catch(error => {
+                        console.error('Error:', error.message);
+                        alert(error.message);
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

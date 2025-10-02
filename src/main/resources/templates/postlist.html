@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>게시글 목록</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #ccc;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f1f1f1;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .pagination {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .pagination a {
+            margin: 0 8px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .pagination a.active {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .create {
+            margin-top: 20px;
+            display: inline-block;
+            background-color: #28a745;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>게시글 목록</h1>
+
+    <a th:href="@{/postlist/new}" class="create">글 작성하기</a>
+
+    <table>
+        <thead>
+            <tr>
+                <th>제목</th>
+                <th>작성자</th>
+                <th>작성일</th>
+                <th>조회수</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="post : ${postPage.content}">
+                <td><a th:href="@{'/postlist/' + ${post.id}}" th:text="${post.title}">제목</a></td>
+                <td th:text="${post.author}">작성자</td>
+                <td th:text="${#temporals.format(post.createdAt, 'yyyy-MM-dd HH:mm')}">날짜</td>
+                <td th:text="${post.views}">조회수</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="pagination">
+        <a th:if="${postPage.hasPrevious()}" th:href="@{/postlist(page=${postPage.number - 1})}">← 이전</a>
+        <span th:text="${postPage.number + 1}">1</span> / <span th:text="${postPage.totalPages}">1</span>
+        <a th:if="${postPage.hasNext()}" th:href="@{/postlist(page=${postPage.number + 1})}">다음 →</a>
+    </div>
+</body>
+</html>
