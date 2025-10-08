@@ -19,7 +19,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth // 요청에 대한 권한 설정
-                .requestMatchers("/","/login", "/register").permitAll()  // 로그인 & 회원가입은 누구나 접근 가능
+                .requestMatchers("/","/login", "/register", "/health").permitAll()  // 로그인 & 회원가입은 누구나 접근 가능
                 .requestMatchers( "/postlist/**", "/download/**").hasAnyRole("USER", "ADMIN")  // ROLE_USER 또는 ROLE_ADMIN 권한이 필요한 요청
                 .requestMatchers("/userlist/**").hasRole("ADMIN")  // ROLE_ADMIN 권한이 필요한 요청
                 .anyRequest().authenticated()  // 그 외 요청은 인증 필요
